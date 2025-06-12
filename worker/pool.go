@@ -2,35 +2,39 @@ package worker
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 )
 
 type Pool struct {
-	numWorkers int
-	jobQueue   chan Job
-	wg         sync.WaitGroup
-
-	Stats *JobStats
+	numWorkers  int
+	lowQueue    chan Processable
+	normalQueue chan Processable
+	highQueue   chan Processable
+	wg          sync.WaitGroup
+	Stats       *JobStats
 }
 
 func NewPool(numWorkers int) *Pool {
 	return &Pool{
-		numWorkers: numWorkers,
-		jobQueue:   make(chan Job, 100),
-		Stats:      &JobStats{},
+		numWorkers:  numWorkers,
+		highQueue:   make(chan Processable, 100),
+		normalQueue: make(chan Processable, 100),
+		lowQueue:    make(chan Processable, 100),
+		Stats:       &JobStats{},
 	}
 }
 
 func (p *Pool) Start(ctx context.Context) {
-	log.Printf("Starting %d workers", p.numWorkers)
+	jobLog.info.Printf("Starting %d workers", p.numWorkers)
+
 	go func() {
 		for {
-			time.Sleep(1 * time.Second)
+			time.Sleep(5 * time.Second)
 			p.Stats.Print()
 		}
 	}()
+
 	for i := 0; i < p.numWorkers; i++ {
 		p.wg.Add(1)
 		go func(workerID int) {
@@ -38,50 +42,89 @@ func (p *Pool) Start(ctx context.Context) {
 			for {
 				select {
 				case <-ctx.Done():
-					log.Printf("Worker %d exiting", workerID)
+					jobLog.info.Printf("Worker %d exiting", workerID)
 					return
-				case job, ok := <-p.jobQueue:
-					if !ok {
-						return
+				default:
+					var job Processable
+					var ok bool
+
+					select {
+					case job, ok = <-p.highQueue:
+					default:
+						select {
+						case job, ok = <-p.normalQueue:
+						default:
+							select {
+							case job, ok = <-p.lowQueue:
+							default:
+								time.Sleep(100 * time.Millisecond) // Nothing to do
+								continue
+							}
+						}
+					}
+
+					if !ok || job == nil {
+						continue
 					}
 					p.HandleJob(job, ctx)
 				}
 			}
+
 		}(i)
 	}
 }
 
-func (p *Pool) Submit(job Job, ctx context.Context) {
+func (p *Pool) Submit(job Processable, ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		return
-	case p.jobQueue <- job:
+	default:
+		switch job.GetPriority() {
+		case Low:
+			p.lowQueue <- job
+		case Normal:
+			p.normalQueue <- job
+		case High:
+			p.highQueue <- job
+		}
 	}
 }
 
 func (p *Pool) Wait() {
-	close(p.jobQueue)
+	close(p.lowQueue)
+	close(p.normalQueue)
+	close(p.highQueue)
 	p.wg.Wait()
+	jobLog.info.Println("All workers shut down gracefully.")
 }
 
-func (p *Pool) HandleJob(job Job, ctx context.Context) {
+func (p *Pool) HandleJob(job Processable, ctx context.Context) {
 	p.Stats.IncTotal()
 
-	for job.Retries = 0; job.Retries < job.MaxRetryCount; job.Retries++ {
-		if err := job.process(); err == nil {
+	for job.GetRetries() < job.GetMaxRetryCount() {
+		job.IncRetry()
+		LogJobStart(job)
+
+		if err := job.Process(); err == nil {
 			p.Stats.IncSuccess()
-			p.Stats.RecordStatus(job.ID, "success")
+			LogJobSuccess(job)
+			p.Stats.RecordStatus(job.GetId(), "success")
 			return
 		}
-		backoff := time.Duration(1<<job.Retries) * time.Second
+
+		backoff := time.Duration(1<<job.GetRetries()) * time.Second
+		LogJobRetry(job, backoff)
+
 		select {
 		case <-time.After(backoff):
 		case <-ctx.Done():
-			p.Stats.RecordStatus(job.ID, "canceled")
+			LogJobCanceled(job)
+			p.Stats.RecordStatus(job.GetId(), "canceled")
 			return
 		}
 	}
 
 	p.Stats.IncFailed()
-	p.Stats.RecordStatus(job.ID, "failed")
+	LogJobFail(job)
+	p.Stats.RecordStatus(job.GetId(), "failed")
 }

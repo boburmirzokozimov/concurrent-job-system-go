@@ -34,5 +34,11 @@ func (s *JobStats) Print() {
 	success := atomic.LoadUint64(&s.Success)
 	failed := atomic.LoadUint64(&s.Failed)
 
-	fmt.Printf("== Job Stats ==\nTotal: %d\nSuccess: %d\nFailed: %d\n", total, success, failed)
+	fmt.Printf(
+		"\n\033[1m== Job Stats ==\033[0m\n"+
+			"\033[36mTotal:\033[0m   %d\n"+
+			"\033[32mSuccess:\033[0m %d\n"+
+			"\033[31mFailed:\033[0m  %d\n\n",
+		total, success, failed,
+	)
 }

@@ -22,7 +22,7 @@ func main() {
 	go pool.Start(ctx)
 
 	// Simulate adding jobs
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 30; i++ {
 		select {
 		case <-ctx.Done():
 			log.Printf("Stopped submission at job %d", i)
@@ -31,7 +31,12 @@ func main() {
 			log.Printf("Stopped submission at job %d", i)
 			break
 		default:
-			job := worker.NewJob(i, 3)
+			var job worker.Processable
+			if i%2 == 0 {
+				job = worker.NewSimpleJob(3, worker.Low)
+			} else {
+				job = worker.NewExcelJob("excel.path", 3, worker.High)
+			}
 			pool.Submit(job, ctx)
 		}
 	}
