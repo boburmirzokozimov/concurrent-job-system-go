@@ -13,15 +13,17 @@ type Pool struct {
 	highQueue   chan Processable
 	wg          sync.WaitGroup
 	Stats       *JobStats
+	Storage     *FileJobStorage
 }
 
-func NewPool(numWorkers int) *Pool {
+func NewPool(numWorkers int, s *FileJobStorage) *Pool {
 	return &Pool{
 		numWorkers:  numWorkers,
 		highQueue:   make(chan Processable, 100),
 		normalQueue: make(chan Processable, 100),
 		lowQueue:    make(chan Processable, 100),
 		Stats:       &JobStats{},
+		Storage:     s,
 	}
 }
 
@@ -75,6 +77,7 @@ func (p *Pool) Start(ctx context.Context) {
 }
 
 func (p *Pool) Submit(job Processable, ctx context.Context) {
+	p.Storage.Save(job)
 	select {
 	case <-ctx.Done():
 		return
@@ -109,6 +112,7 @@ func (p *Pool) HandleJob(job Processable, ctx context.Context) {
 			p.Stats.IncSuccess()
 			LogJobSuccess(job)
 			p.Stats.RecordStatus(job.GetId(), "success")
+			p.Storage.MarkCompleted(job.GetId(), "success")
 			return
 		}
 
@@ -120,6 +124,7 @@ func (p *Pool) HandleJob(job Processable, ctx context.Context) {
 		case <-ctx.Done():
 			LogJobCanceled(job)
 			p.Stats.RecordStatus(job.GetId(), "canceled")
+			p.Storage.MarkCompleted(job.GetId(), "canceled")
 			return
 		}
 	}
@@ -127,4 +132,5 @@ func (p *Pool) HandleJob(job Processable, ctx context.Context) {
 	p.Stats.IncFailed()
 	LogJobFail(job)
 	p.Stats.RecordStatus(job.GetId(), "failed")
+	p.Storage.MarkCompleted(job.GetId(), "failed")
 }

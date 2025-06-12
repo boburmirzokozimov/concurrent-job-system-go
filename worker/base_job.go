@@ -13,6 +13,7 @@ type Processable interface {
 	IncRetry()
 	Type() string
 	GetPriority() Priority
+	Base() *BaseJob
 }
 
 var globalJobID uint64
@@ -22,12 +23,13 @@ func nextJobID() int {
 }
 
 type BaseJob struct {
-	ID            int
-	Retries       int
-	MaxRetryCount int
-	Priority      Priority
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID            int       `json:"id"`
+	Retries       int       `json:"retries"`
+	MaxRetryCount int       `json:"max_retry_count"`
+	Priority      Priority  `json:"priority"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	Status        string    `json:"status"` // pending, success, failed, canceled
 }
 
 func (j *BaseJob) GetRetries() int {
@@ -49,4 +51,7 @@ func (j *BaseJob) IncRetry() {
 
 func (j *BaseJob) GetPriority() Priority {
 	return j.Priority
+}
+func (j *BaseJob) Base() *BaseJob {
+	return j
 }

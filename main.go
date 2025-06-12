@@ -18,7 +18,8 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	// Start worker pool
-	pool := worker.NewPool(5) // 5 workers
+	storage := worker.NewFileJobStorage("jobs.json")
+	pool := worker.NewPool(5, storage) // 5 workers
 	go pool.Start(ctx)
 
 	// Simulate adding jobs
