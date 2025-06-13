@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type BaseJob struct {
 	ID            int `gorm:"primaryKey;autoIncrement"`
@@ -12,17 +14,6 @@ type BaseJob struct {
 	Status        string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
-}
-
-type Processable interface {
-	GetRetries() int
-	GetId() int
-	GetMaxRetryCount() int
-	Process() error
-	IncRetry()
-	Type() string
-	GetPriority() Priority
-	Base() *BaseJob
 }
 
 func (j *BaseJob) GetRetries() int {

@@ -1,4 +1,4 @@
-package config
+package internal
 
 import (
 	"concurrent-job-system/models"

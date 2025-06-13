@@ -34,3 +34,20 @@ func (j *ExcelJob) Process() error {
 	LogJobSuccess(j)
 	return nil
 }
+
+type ExcelJobPayload struct {
+	FilePath string `json:"filePath"`
+}
+
+func (j *ExcelJobPayload) ToProcessable(base models.BaseJob) models.Processable {
+	return &ExcelJob{
+		BaseJob:  base,
+		FilePath: j.FilePath,
+	}
+}
+
+func (j *ExcelJob) PayloadOnly() interface{} {
+	return ExcelJobPayload{
+		FilePath: j.FilePath,
+	}
+}

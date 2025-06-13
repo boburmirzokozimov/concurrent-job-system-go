@@ -27,3 +27,13 @@ func (j *SimpleJob) Process() error {
 	LogJobSuccess(j)
 	return nil
 }
+
+func (j *SimpleJob) ToProcessable(_ models.BaseJob) models.Processable {
+	return &SimpleJob{}
+}
+
+type SimplePayloadJob struct{}
+
+func (j *SimpleJob) PayloadOnly() interface{} {
+	return SimplePayloadJob{}
+}

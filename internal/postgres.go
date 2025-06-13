@@ -1,7 +1,8 @@
-package config
+package internal
 
 import (
 	"concurrent-job-system/models"
+	"concurrent-job-system/worker"
 	"encoding/json"
 	"fmt"
 	"gorm.io/driver/postgres"
@@ -60,7 +61,7 @@ func Migrate(p *gorm.DB) error {
 }
 
 func (s *PostgresDB) Save(job models.Processable) error {
-	payload, _ := json.Marshal(job) // serialize full struct
+	payload, _ := json.Marshal(job.PayloadOnly()) // serialize full struct
 	entity := models.BaseJob{
 		JobType:       job.Type(),
 		Payload:       string(payload),
@@ -92,4 +93,21 @@ func (s *PostgresDB) LoadPending() ([]models.BaseJob, error) {
 		jobs = append(jobs, base)
 	}
 	return jobs, nil
+}
+func DeserializeJob(row models.BaseJob) (models.Processable, error) {
+	creator, ok := payloadRegistry[row.JobType]
+	if !ok {
+		return nil, fmt.Errorf("unknown job type: %s", row.JobType)
+	}
+
+	payload := creator()
+	if err := json.Unmarshal([]byte(row.Payload), payload); err != nil {
+		return nil, err
+	}
+
+	return payload.ToProcessable(row), nil
+}
+
+var payloadRegistry = map[string]func() models.JobPayload{
+	"ExcelJob": func() models.JobPayload { return &worker.ExcelJobPayload{} },
 }
