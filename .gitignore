@@ -6,7 +6,7 @@
 *.dylib
 *.test
 *.out
-
+.env
 # Output of `go build`
 /bin/
 /build/
