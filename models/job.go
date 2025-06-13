@@ -1,0 +1,53 @@
+package models
+
+import "time"
+
+type BaseJob struct {
+	ID            int `gorm:"primaryKey;autoIncrement"`
+	JobType       string
+	Payload       string
+	Priority      int
+	MaxRetryCount int
+	Retries       int
+	Status        string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type Processable interface {
+	GetRetries() int
+	GetId() int
+	GetMaxRetryCount() int
+	Process() error
+	IncRetry()
+	Type() string
+	GetPriority() Priority
+	Base() *BaseJob
+}
+
+func (j *BaseJob) GetRetries() int {
+	return j.Retries
+}
+
+func (j *BaseJob) GetMaxRetryCount() int {
+	return j.MaxRetryCount
+}
+
+func (j *BaseJob) GetId() int {
+	return j.ID
+}
+
+func (j *BaseJob) IncRetry() {
+	j.Retries++
+	j.UpdatedAt = time.Now()
+}
+
+func (j *BaseJob) GetPriority() Priority {
+	return PriorityFromInt(j.Priority)
+}
+func (j *BaseJob) Base() *BaseJob {
+	return j
+}
+func (j *BaseJob) Type() string {
+	return j.JobType
+}

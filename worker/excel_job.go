@@ -1,23 +1,24 @@
 package worker
 
 import (
+	"concurrent-job-system/models"
 	"fmt"
 	"time"
 )
 
 type ExcelJob struct {
-	BaseJob
+	models.BaseJob
 	FilePath string
 }
 
-func NewExcelJob(filePath string, maxRetryCount int, prior Priority) *ExcelJob {
+func NewExcelJob(filePath string, maxRetryCount int, prior models.Priority) *ExcelJob {
 	return &ExcelJob{
-		BaseJob: BaseJob{
-			ID:            nextJobID(),
+		BaseJob: models.BaseJob{
 			MaxRetryCount: maxRetryCount,
-			Priority:      prior,
+			Priority:      int(prior),
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
+			JobType:       "Excel",
 		},
 		FilePath: filePath,
 	}
@@ -32,7 +33,4 @@ func (j *ExcelJob) Process() error {
 	time.Sleep(2 * time.Second) // Simulate work
 	LogJobSuccess(j)
 	return nil
-}
-func (j *ExcelJob) Type() string {
-	return "ExcelJob"
 }

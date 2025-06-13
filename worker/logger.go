@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"concurrent-job-system/models"
 	"fmt"
 	"log"
 	"os"
@@ -12,14 +13,7 @@ const (
 	ColorRed    = "\033[31m"
 	ColorGreen  = "\033[32m"
 	ColorYellow = "\033[33m"
-	ColorBlue   = "\033[34m"
 	ColorCyan   = "\033[36m"
-	ColorWhite  = "\033[97m"
-
-	// ColorBrightRed Vivid background-like text highlights for priorities
-	ColorBrightRed    = "\033[1;91m"
-	ColorBrightGreen  = "\033[1;92m"
-	ColorBrightYellow = "\033[1;93m"
 )
 
 type JobLogger struct {
@@ -36,32 +30,32 @@ var jobLog = &JobLogger{
 	retry: log.New(os.Stdout, fmt.Sprintf("%s[RETRY]%s ", ColorYellow, ColorReset), log.Ltime),
 }
 
-func LogJobStart(job Processable) {
-	priorityColor := ColorForPriority(job.GetPriority())
+func LogJobStart(job models.Processable) {
+	priorityColor := models.ColorForPriority(job.GetPriority().String())
 	jobLog.start.Printf("%s[%s][%s] Job ID: %d | Retry: %d/%d%s",
-		priorityColor, job.Type(), job.GetPriority().String(), job.GetId(), job.GetRetries(), job.GetMaxRetryCount(), ColorReset)
+		priorityColor, job.Type(), job.GetPriority(), job.GetId(), job.GetRetries(), job.GetMaxRetryCount(), ColorReset)
 }
 
-func LogJobSuccess(job Processable) {
-	priorityColor := ColorForPriority(job.GetPriority())
+func LogJobSuccess(job models.Processable) {
+	priorityColor := models.ColorForPriority(job.GetPriority().String())
 	jobLog.info.Printf("%s[%s][%s] Job ID: %d completed successfully%s",
-		priorityColor, job.Type(), job.GetPriority().String(), job.GetId(), ColorReset)
+		priorityColor, job.Type(), job.GetPriority(), job.GetId(), ColorReset)
 }
 
-func LogJobRetry(job Processable, backoff time.Duration) {
-	priorityColor := ColorForPriority(job.GetPriority())
+func LogJobRetry(job models.Processable, backoff time.Duration) {
+	priorityColor := models.ColorForPriority(job.GetPriority().String())
 	jobLog.retry.Printf("%s[%s][%s] Job ID: %d retrying in %v...%s",
-		priorityColor, job.Type(), job.GetPriority().String(), job.GetId(), backoff, ColorReset)
+		priorityColor, job.Type(), job.GetPriority(), job.GetId(), backoff, ColorReset)
 }
 
-func LogJobFail(job Processable) {
-	priorityColor := ColorForPriority(job.GetPriority())
+func LogJobFail(job models.Processable) {
+	priorityColor := models.ColorForPriority(job.GetPriority().String())
 	jobLog.fail.Printf("%s[%s][%s] Job ID: %d failed%s",
-		priorityColor, job.Type(), job.GetPriority().String(), job.GetId(), ColorReset)
+		priorityColor, job.Type(), job.GetPriority(), job.GetId(), ColorReset)
 }
 
-func LogJobCanceled(job Processable) {
-	priorityColor := ColorForPriority(job.GetPriority())
+func LogJobCanceled(job models.Processable) {
+	priorityColor := models.ColorForPriority(job.GetPriority().String())
 	jobLog.fail.Printf("%s[%s][%s] Job ID: %d canceled by context%s",
-		priorityColor, job.Type(), job.GetPriority().String(), job.GetId(), ColorReset)
+		priorityColor, job.Type(), job.GetPriority(), job.GetId(), ColorReset)
 }

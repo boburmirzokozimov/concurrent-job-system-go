@@ -1,6 +1,8 @@
 package worker
 
 import (
+	"concurrent-job-system/internal"
+	"concurrent-job-system/models"
 	"context"
 	"sync"
 	"time"
@@ -8,20 +10,20 @@ import (
 
 type Pool struct {
 	numWorkers  int
-	lowQueue    chan Processable
-	normalQueue chan Processable
-	highQueue   chan Processable
+	lowQueue    chan models.Processable
+	normalQueue chan models.Processable
+	highQueue   chan models.Processable
 	wg          sync.WaitGroup
 	Stats       *JobStats
-	Storage     *FileJobStorage
+	Storage     config.IStorage
 }
 
-func NewPool(numWorkers int, s *FileJobStorage) *Pool {
+func NewPool(numWorkers int, s config.IStorage) *Pool {
 	return &Pool{
 		numWorkers:  numWorkers,
-		highQueue:   make(chan Processable, 100),
-		normalQueue: make(chan Processable, 100),
-		lowQueue:    make(chan Processable, 100),
+		highQueue:   make(chan models.Processable, 100),
+		normalQueue: make(chan models.Processable, 100),
+		lowQueue:    make(chan models.Processable, 100),
 		Stats:       &JobStats{},
 		Storage:     s,
 	}
@@ -47,7 +49,7 @@ func (p *Pool) Start(ctx context.Context) {
 					jobLog.info.Printf("Worker %d exiting", workerID)
 					return
 				default:
-					var job Processable
+					var job models.Processable
 					var ok bool
 
 					select {
@@ -76,18 +78,21 @@ func (p *Pool) Start(ctx context.Context) {
 	}
 }
 
-func (p *Pool) Submit(job Processable, ctx context.Context) {
-	p.Storage.Save(job)
+func (p *Pool) Submit(job models.Processable, ctx context.Context) {
+	err := p.Storage.Save(job)
+	if err != nil {
+		return
+	}
 	select {
 	case <-ctx.Done():
 		return
 	default:
 		switch job.GetPriority() {
-		case Low:
+		case models.Low:
 			p.lowQueue <- job
-		case Normal:
+		case models.Normal:
 			p.normalQueue <- job
-		case High:
+		case models.High:
 			p.highQueue <- job
 		}
 	}
@@ -101,7 +106,7 @@ func (p *Pool) Wait() {
 	jobLog.info.Println("All workers shut down gracefully.")
 }
 
-func (p *Pool) HandleJob(job Processable, ctx context.Context) {
+func (p *Pool) HandleJob(job models.Processable, ctx context.Context) {
 	p.Stats.IncTotal()
 
 	for job.GetRetries() < job.GetMaxRetryCount() {
@@ -112,7 +117,7 @@ func (p *Pool) HandleJob(job Processable, ctx context.Context) {
 			p.Stats.IncSuccess()
 			LogJobSuccess(job)
 			p.Stats.RecordStatus(job.GetId(), "success")
-			p.Storage.MarkCompleted(job.GetId(), "success")
+			p.Storage.UpdateStatus(job.GetId(), "success")
 			return
 		}
 
@@ -124,7 +129,7 @@ func (p *Pool) HandleJob(job Processable, ctx context.Context) {
 		case <-ctx.Done():
 			LogJobCanceled(job)
 			p.Stats.RecordStatus(job.GetId(), "canceled")
-			p.Storage.MarkCompleted(job.GetId(), "canceled")
+			p.Storage.UpdateStatus(job.GetId(), "canceled")
 			return
 		}
 	}
@@ -132,5 +137,5 @@ func (p *Pool) HandleJob(job Processable, ctx context.Context) {
 	p.Stats.IncFailed()
 	LogJobFail(job)
 	p.Stats.RecordStatus(job.GetId(), "failed")
-	p.Storage.MarkCompleted(job.GetId(), "failed")
+	p.Storage.UpdateStatus(job.GetId(), "failed")
 }
