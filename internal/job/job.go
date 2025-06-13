@@ -1,8 +1,25 @@
-package models
+package job
 
 import (
+	"concurrent-job-system/internal/job/priority"
 	"time"
 )
+
+type IProcessable interface {
+	GetRetries() int
+	GetId() int
+	GetMaxRetryCount() int
+	Process() error
+	IncRetry()
+	Type() string
+	GetPriority() priority.Priority
+	Base() *BaseJob
+	PayloadOnly() interface{}
+}
+
+type Payload interface {
+	ToProcessable(base BaseJob) IProcessable
+}
 
 type BaseJob struct {
 	ID            int `gorm:"primaryKey;autoIncrement"`
@@ -33,8 +50,8 @@ func (j *BaseJob) IncRetry() {
 	j.UpdatedAt = time.Now()
 }
 
-func (j *BaseJob) GetPriority() Priority {
-	return PriorityFromInt(j.Priority)
+func (j *BaseJob) GetPriority() priority.Priority {
+	return priority.FromInt(j.Priority)
 }
 func (j *BaseJob) Base() *BaseJob {
 	return j

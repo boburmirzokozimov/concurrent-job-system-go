@@ -44,4 +44,3 @@ mem.prof
 *.pb.go
 *.gen.go
 
-db

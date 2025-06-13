@@ -1,21 +1,22 @@
-package worker
+package types
 
 import (
-	"concurrent-job-system/models"
+	"concurrent-job-system/internal/job"
+	"concurrent-job-system/internal/job/priority"
 	"fmt"
 	"time"
 )
 
 type ExcelJob struct {
-	models.BaseJob
+	job.BaseJob
 	FilePath string
 }
 
-func NewExcelJob(filePath string, maxRetryCount int, prior models.Priority) *ExcelJob {
+func NewExcelJob(filePath string) *ExcelJob {
 	return &ExcelJob{
-		BaseJob: models.BaseJob{
-			MaxRetryCount: maxRetryCount,
-			Priority:      int(prior),
+		BaseJob: job.BaseJob{
+			MaxRetryCount: 3,
+			Priority:      int(priority.High),
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 			JobType:       "Excel",
@@ -25,13 +26,10 @@ func NewExcelJob(filePath string, maxRetryCount int, prior models.Priority) *Exc
 }
 
 func (j *ExcelJob) Process() error {
-	LogJobStart(j)
 	if j.ID%4 == 0 {
-		LogJobFail(j)
 		return fmt.Errorf("simulated failure on job %d", j.ID)
 	}
 	time.Sleep(2 * time.Second) // Simulate work
-	LogJobSuccess(j)
 	return nil
 }
 
@@ -39,7 +37,7 @@ type ExcelJobPayload struct {
 	FilePath string `json:"filePath"`
 }
 
-func (j *ExcelJobPayload) ToProcessable(base models.BaseJob) models.Processable {
+func (j *ExcelJobPayload) ToProcessable(base job.BaseJob) job.IProcessable {
 	return &ExcelJob{
 		BaseJob:  base,
 		FilePath: j.FilePath,

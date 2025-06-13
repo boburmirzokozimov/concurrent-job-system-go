@@ -1,19 +1,20 @@
-package worker
+package types
 
 import (
-	"concurrent-job-system/models"
+	"concurrent-job-system/internal/job"
+	"concurrent-job-system/internal/job/priority"
 	"time"
 )
 
 type SimpleJob struct {
-	models.BaseJob
+	job.BaseJob
 }
 
-func NewSimpleJob(maxRetryCount int, prior models.Priority) *SimpleJob {
+func NewSimpleJob() *SimpleJob {
 	return &SimpleJob{
-		BaseJob: models.BaseJob{
-			MaxRetryCount: maxRetryCount,
-			Priority:      int(prior),
+		BaseJob: job.BaseJob{
+			MaxRetryCount: 3,
+			Priority:      int(priority.Low),
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 			JobType:       "Simple",
@@ -22,13 +23,11 @@ func NewSimpleJob(maxRetryCount int, prior models.Priority) *SimpleJob {
 }
 
 func (j *SimpleJob) Process() error {
-	LogJobStart(j)
 	time.Sleep(2 * time.Second) // Simulate work
-	LogJobSuccess(j)
 	return nil
 }
 
-func (j *SimpleJob) ToProcessable(_ models.BaseJob) models.Processable {
+func (j *SimpleJob) ToProcessable(_ job.BaseJob) job.IProcessable {
 	return &SimpleJob{}
 }
 

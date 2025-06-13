@@ -42,3 +42,27 @@ func (s *JobStats) Print() {
 		total, success, failed,
 	)
 }
+
+func (s *JobStats) Reset() {
+	atomic.StoreUint64(&s.Total, 0)
+	atomic.StoreUint64(&s.Success, 0)
+	atomic.StoreUint64(&s.Failed, 0)
+	s.Status = sync.Map{} // Clear map
+}
+func (s *JobStats) GetStatusCounts() map[string]int {
+	counts := make(map[string]int)
+	s.Status.Range(func(_, v any) bool {
+		status := v.(string)
+		counts[status]++
+		return true
+	})
+	return counts
+}
+func (s *JobStats) PrintVerbose() {
+	s.Print()
+	fmt.Println("== Status Breakdown ==")
+	for status, count := range s.GetStatusCounts() {
+		fmt.Printf("  %s: %d\n", status, count)
+	}
+	fmt.Println()
+}

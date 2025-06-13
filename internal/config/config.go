@@ -1,4 +1,4 @@
-package internal
+package config
 
 import (
 	"os"
@@ -25,6 +25,9 @@ type Config struct {
 	RedisAddr     string
 	RedisPassword string
 	RedisDB       int
+
+	//Worker Settings
+	WorkerPool int
 }
 
 func NewConfig() *Config {
@@ -47,6 +50,8 @@ func NewConfig() *Config {
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvAsInt("REDIS_DB", 0),
+
+		WorkerPool: getEnvAsInt("WORKER_POOL", 0),
 	}
 }
 

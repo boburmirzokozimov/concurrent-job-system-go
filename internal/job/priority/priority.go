@@ -1,4 +1,4 @@
-package models
+package priority
 
 type Priority int
 
@@ -29,7 +29,7 @@ func (p Priority) String() string {
 	}
 }
 
-func PriorityFromInt(code int) Priority {
+func FromInt(code int) Priority {
 	switch code {
 	case int(Low):
 		return Low
