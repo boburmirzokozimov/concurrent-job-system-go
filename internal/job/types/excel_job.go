@@ -3,7 +3,6 @@ package types
 import (
 	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/job/priority"
-	"fmt"
 	"time"
 )
 
@@ -26,9 +25,6 @@ func NewExcelJob(filePath string) *ExcelJob {
 }
 
 func (j *ExcelJob) Process() error {
-	if j.ID%4 == 0 {
-		return fmt.Errorf("simulated failure on job %d", j.ID)
-	}
 	time.Sleep(2 * time.Second) // Simulate work
 	return nil
 }

@@ -32,8 +32,8 @@ func (e *JobExecutor) Execute(j job.IProcessable, ctx context.Context) {
 	for j.GetRetries() < j.GetMaxRetryCount() {
 		j.IncRetry()
 		e.logger.Debug("Job %d retry #%d", j.GetId(), j.GetRetries())
-
-		if err := j.Process(); err == nil {
+		err := j.Process()
+		if err == nil {
 			e.markJobAs(j, "success")
 			return
 		} else {
@@ -57,8 +57,10 @@ func (e *JobExecutor) markJobAs(j job.IProcessable, status string) {
 	switch status {
 	case "success":
 		e.stats.IncSuccess()
+		break
 	case "failed":
 		e.stats.IncFailed()
+		break
 	}
 	e.stats.RecordStatus(j.GetId(), status)
 	e.storage.UpdateStatus(j.GetId(), status)
