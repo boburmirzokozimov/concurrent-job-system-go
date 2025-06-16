@@ -53,14 +53,51 @@ func (r *JobRepository) UpdateStatus(id int, status string) error {
 }
 
 func (r *JobRepository) LoadPending() (job.IProcessable, error) {
+	tx := r.db.db.Begin()
+	if tx.Error != nil {
+		r.logger.Error("Failed to begin transaction: %v", tx.Error)
+		return nil, tx.Error
+	}
+
 	var row job.BaseJob
-	if err := r.db.db.Where("status != ?", "success").Limit(1).Find(&row).Error; err != nil {
+	err := tx.Raw(`
+        UPDATE base_jobs
+        SET status = 'reserved',
+            updated_at = NOW()
+        WHERE id = (
+            SELECT id
+            FROM base_jobs
+            WHERE status = 'pending'
+            ORDER BY priority DESC, created_at
+            FOR UPDATE SKIP LOCKED
+            LIMIT 1
+        )
+        RETURNING *
+    `).Scan(&row).Error
+
+	if err != nil {
+		r.logger.Error("Failed to reserve job: %v", err)
+		_ = tx.Rollback()
+		return nil, err
+	}
+
+	if row.ID == 0 {
+		r.logger.Debug("No pending jobs found to reserve")
+		_ = tx.Rollback()
+		return nil, nil
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		r.logger.Error("Failed to commit transaction for job ID %d: %v", row.ID, err)
 		return nil, err
 	}
 
 	j, err := factory.DeserializeJob(row)
 	if err != nil {
-		r.logger.Warn("skipping corrupt job id %d: %v", row.ID, err)
+		r.logger.Warn("Deserialization failed for job ID %d: %v", row.ID, err)
+		return nil, err
 	}
+
+	r.logger.Info("Reserved job ID %d of type '%s' with priority %d", row.ID, row.JobType, row.Priority)
 	return j, nil
 }

@@ -4,6 +4,7 @@ import (
 	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/logger"
 	"context"
+	"time"
 )
 
 type Dispatcher struct {
@@ -32,6 +33,10 @@ func (d *Dispatcher) Run(ctx context.Context, workerID int) {
 			dequeue := d.queues.Dequeue()
 			if dequeue == nil {
 				dequeue = d.executor.LoadPending()
+				if dequeue == nil {
+					time.Sleep(100 * time.Millisecond)
+					continue
+				}
 			}
 			d.logger.Debug("Worker %d picked job %d", workerID, dequeue.GetId())
 			d.executor.Execute(dequeue, ctx)
