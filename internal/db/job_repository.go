@@ -20,12 +20,12 @@ func NewJobRepository(db *PostgresDB, logger logger.ILogger) *JobRepository {
 }
 
 type IJobRepository interface {
-	Save(j job.IProcessable) error
+	Save(j job.IProcessable) (int, error)
 	UpdateStatus(id int, status string) error
-	LoadPending() ([]job.IProcessable, error)
+	LoadPending() (job.IProcessable, error)
 }
 
-func (r *JobRepository) Save(j job.IProcessable) error {
+func (r *JobRepository) Save(j job.IProcessable) (int, error) {
 	payload, _ := json.Marshal(j.PayloadOnly())
 	entity := job.BaseJob{
 		JobType:       j.Type(),
@@ -41,7 +41,7 @@ func (r *JobRepository) Save(j job.IProcessable) error {
 	if res.Error != nil {
 		r.logger.Error("Failed to save job %v: %v", j.GetId(), res.Error)
 	}
-	return res.Error
+	return entity.ID, res.Error
 }
 
 func (r *JobRepository) UpdateStatus(id int, status string) error {
@@ -52,20 +52,15 @@ func (r *JobRepository) UpdateStatus(id int, status string) error {
 	return err
 }
 
-func (r *JobRepository) LoadPending() ([]job.IProcessable, error) {
-	var rows []job.BaseJob
-	if err := r.db.db.Where("status != ?", "success").Find(&rows).Error; err != nil {
+func (r *JobRepository) LoadPending() (job.IProcessable, error) {
+	var row job.BaseJob
+	if err := r.db.db.Where("status != ?", "success").Limit(1).Find(&row).Error; err != nil {
 		return nil, err
 	}
 
-	jobs := make([]job.IProcessable, 0, len(rows))
-	for _, row := range rows {
-		j, err := factory.DeserializeJob(row)
-		if err != nil {
-			r.logger.Warn("skipping corrupt job id %d: %v", row.ID, err)
-			continue
-		}
-		jobs = append(jobs, j)
+	j, err := factory.DeserializeJob(row)
+	if err != nil {
+		r.logger.Warn("skipping corrupt job id %d: %v", row.ID, err)
 	}
-	return jobs, nil
+	return j, nil
 }

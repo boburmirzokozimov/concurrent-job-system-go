@@ -8,7 +8,8 @@ import (
 )
 
 var payloadRegistry = map[string]func() job.Payload{
-	"ExcelJob": func() job.Payload { return &types.ExcelJobPayload{} },
+	"Simple": func() job.Payload { return &types.SimplePayloadJob{} },
+	"Excel":  func() job.Payload { return &types.ExcelJobPayload{} },
 }
 
 func DeserializeJob(row job.BaseJob) (job.IProcessable, error) {

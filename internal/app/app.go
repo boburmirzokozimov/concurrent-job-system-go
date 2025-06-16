@@ -21,7 +21,7 @@ func (a *App) Run(ctx context.Context) error {
 	go a.container.Pool.Start(ctx)
 
 	//Simulate jobs
-	go a.simulateJobs(ctx)
+	//go a.simulateJobs(ctx)
 
 	// Wait for shutdown signal
 	<-ctx.Done()

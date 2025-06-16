@@ -42,10 +42,12 @@ func (p *Pool) Start(ctx context.Context) {
 }
 
 func (p *Pool) Submit(j job.IProcessable) {
-	if err := p.dispatcher.Save(j); err != nil {
+	id, err := p.dispatcher.Save(j)
+	if err != nil {
 		p.logger.Error("Failed to save job %d: %v", j.GetId(), err)
 		return
 	}
+	j.SetId(id)
 	p.queues.Enqueue(j)
 	p.logger.Debug("Enqueued job %d with priority %v", j.GetId(), j.GetPriority())
 }

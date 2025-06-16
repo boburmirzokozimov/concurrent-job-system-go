@@ -15,6 +15,7 @@ type IProcessable interface {
 	GetPriority() priority.Priority
 	Base() *BaseJob
 	PayloadOnly() interface{}
+	SetId(id int) error
 }
 
 type Payload interface {
@@ -48,6 +49,10 @@ func (j *BaseJob) GetId() int {
 func (j *BaseJob) IncRetry() {
 	j.Retries++
 	j.UpdatedAt = time.Now()
+}
+func (j *BaseJob) SetId(id int) error {
+	j.ID = id
+	return nil
 }
 
 func (j *BaseJob) GetPriority() priority.Priority {

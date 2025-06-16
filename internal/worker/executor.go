@@ -21,7 +21,7 @@ func NewJobExecutor(stats *JobStats, storage db.IJobRepository, log logger.ILogg
 		logger:  log,
 	}
 }
-func (e *JobExecutor) Save(j job.IProcessable) error {
+func (e *JobExecutor) Save(j job.IProcessable) (int, error) {
 	return e.storage.Save(j)
 }
 
@@ -64,4 +64,12 @@ func (e *JobExecutor) markJobAs(j job.IProcessable, status string) {
 	}
 	e.stats.RecordStatus(j.GetId(), status)
 	e.storage.UpdateStatus(j.GetId(), status)
+}
+
+func (e *JobExecutor) LoadPending() job.IProcessable {
+	j, err := e.storage.LoadPending()
+	if err != nil {
+		e.logger.Error("Failed to load pending job")
+	}
+	return j
 }

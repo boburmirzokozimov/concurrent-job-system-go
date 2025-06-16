@@ -27,8 +27,10 @@ func (j *SimpleJob) Process() error {
 	return nil
 }
 
-func (j *SimpleJob) ToProcessable(_ job.BaseJob) job.IProcessable {
-	return &SimpleJob{}
+func (j *SimplePayloadJob) ToProcessable(b job.BaseJob) job.IProcessable {
+	return &SimpleJob{
+		BaseJob: b,
+	}
 }
 
 type SimplePayloadJob struct{}
