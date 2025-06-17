@@ -25,18 +25,18 @@ clean:
 	rm -rf bin/
 
 # Docker commands
-.PHONY: docker-build docker-up docker-down docker-logs
+.PHONY: build up down logs
 
-docker-build:
+build:
 	docker build -t $(APP_NAME):latest -f $(DOCKER_FILE) .
 
-docker-up:
+up:
 	$(DOCKER_COMPOSE) up -d --build
 
-docker-down:
+down:
 	$(DOCKER_COMPOSE) down
 
-docker-logs:
+logs:
 	$(DOCKER_COMPOSE) logs -f
 
 # Prometheus
@@ -49,4 +49,4 @@ prometheus:
 # Full development workflow
 .PHONY: dev
 
-dev: fmt lint test build docker-up prometheus
+dev: fmt lint test build up prometheus
