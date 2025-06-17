@@ -4,6 +4,7 @@ import (
 	"concurrent-job-system/internal/db"
 	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/logger"
+	"concurrent-job-system/internal/metrics"
 	"context"
 	"time"
 )
@@ -26,6 +27,13 @@ func (e *JobExecutor) Save(j job.IProcessable) (int, error) {
 }
 
 func (e *JobExecutor) Execute(j job.IProcessable, ctx context.Context) {
+	start := time.Now()
+	metrics.RunningJobs.Inc()
+	defer func() {
+		metrics.JobLatency.Observe(time.Since(start).Seconds())
+		metrics.RunningJobs.Dec()
+	}()
+
 	e.stats.IncTotal()
 	e.logger.Info("Executing job %d", j.GetId())
 
@@ -35,6 +43,7 @@ func (e *JobExecutor) Execute(j job.IProcessable, ctx context.Context) {
 		err := j.Process()
 		if err == nil {
 			e.markJobAs(j, "success")
+			metrics.SucceededJobs.Inc()
 			return
 		} else {
 			e.logger.Warn("Job %d failed attempt #%d", j.GetId(), j.GetRetries())
@@ -45,10 +54,12 @@ func (e *JobExecutor) Execute(j job.IProcessable, ctx context.Context) {
 		case <-time.After(backoff):
 		case <-ctx.Done():
 			e.markJobAs(j, "canceled")
+			metrics.DeadLetterJobs.Inc()
 			return
 		}
 	}
 
+	metrics.FailedJobs.Inc()
 	e.markJobAs(j, "failed")
 }
 

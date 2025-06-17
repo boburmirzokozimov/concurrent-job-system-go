@@ -4,6 +4,7 @@ import (
 	"concurrent-job-system/internal/db"
 	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/logger"
+	"concurrent-job-system/internal/metrics"
 	"context"
 	"sync"
 )
@@ -42,6 +43,8 @@ func (p *Pool) Start(ctx context.Context) {
 }
 
 func (p *Pool) Submit(j job.IProcessable) {
+	metrics.QueuedJobs.WithLabelValues(j.Type()).Inc()
+	metrics.QueuedGauge.Inc()
 	id, err := p.dispatcher.Save(j)
 	if err != nil {
 		p.logger.Error("Failed to save job %d: %v", j.GetId(), err)

@@ -3,6 +3,7 @@ package worker
 import (
 	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/logger"
+	"concurrent-job-system/internal/metrics"
 	"context"
 	"time"
 )
@@ -39,6 +40,7 @@ func (d *Dispatcher) Run(ctx context.Context, workerID int) {
 				}
 			}
 			d.logger.Debug("Worker %d picked job %d", workerID, dequeue.GetId())
+			metrics.QueuedGauge.Dec()
 			d.executor.Execute(dequeue, ctx)
 		}
 	}

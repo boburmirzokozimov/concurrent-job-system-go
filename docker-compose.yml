@@ -14,9 +14,33 @@ services:
     networks:
       - job-network
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - job-network
+
+  job-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "2112:2112"
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=5432
+    depends_on:
+      - job-db
+    networks:
+      - job-network
+
 volumes:
   job_data:
-  redis_data:
 
 networks:
   job-network:
