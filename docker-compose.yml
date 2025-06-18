@@ -32,7 +32,7 @@ services:
   prometheus:
     image: prom/prometheus
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     networks:
@@ -48,8 +48,8 @@ services:
       - prometheus
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/etc/grafana/dashboards
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/etc/grafana/dashboards
 
   loki:
     image: grafana/loki:2.9.0
@@ -63,7 +63,7 @@ services:
     image: grafana/promtail:2.9.0
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./promtail-config.yml:/etc/promtail/config.yml
+      - ./docker/promtail-config.yml:/etc/promtail/config.yml
     networks:
       - job-network
     depends_on:

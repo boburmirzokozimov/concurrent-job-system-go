@@ -13,7 +13,7 @@ COPY go.sum ./
 RUN go mod download
 
 # Copy the entire source code
-COPY . .
+COPY .. .
 
 # Build the Go binary
 RUN go build -o job-runner ./cmd/main
