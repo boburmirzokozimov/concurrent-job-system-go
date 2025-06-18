@@ -1,0 +1,9 @@
+apiVersion: 1
+
+providers:
+  - name: JobDashboards
+    folder: Jobs
+    type: file
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/dashboards

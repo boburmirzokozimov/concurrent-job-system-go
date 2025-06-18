@@ -1,0 +1,36 @@
+{
+  "id": null,
+  "title": "Job Queue Dashboard",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Queue Length",
+      "targets": [{ "expr": "job_queue_length" }],
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "type": "stat",
+      "title": "Success Count",
+      "targets": [{ "expr": "job_success_total" }],
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "type": "stat",
+      "title": "Failed Count",
+      "targets": [{ "expr": "job_failed_total" }],
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 4 }
+    },
+    {
+      "type": "stat",
+      "title": "P95 Latency (s)",
+      "targets": [{
+        "expr": "histogram_quantile(0.95, rate(job_latency_seconds_bucket[5m]))"
+      }],
+      "gridPos": { "x": 6, "y": 4, "w": 6, "h": 4 }
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s"
+}
