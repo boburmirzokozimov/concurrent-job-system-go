@@ -16,6 +16,7 @@ type IProcessable interface {
 	Base() *BaseJob
 	PayloadOnly() interface{}
 	SetId(id int) error
+	GetStatus() string
 }
 
 type Payload interface {
@@ -36,6 +37,10 @@ type BaseJob struct {
 
 func (j *BaseJob) GetRetries() int {
 	return j.Retries
+}
+
+func (j *BaseJob) GetStatus() string {
+	return j.Status
 }
 
 func (j *BaseJob) GetMaxRetryCount() int {

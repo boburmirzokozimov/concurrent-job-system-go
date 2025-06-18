@@ -10,9 +10,10 @@ import (
 )
 
 type Container struct {
-	Cfg    *config.Config
-	Pool   *worker.Pool
-	Logger logger.ILogger
+	Cfg           *config.Config
+	Pool          *worker.Pool
+	Logger        logger.ILogger
+	JobRepository db.IJobRepository
 }
 
 func (c *Container) MakeJob(i int) job.IProcessable {
@@ -37,8 +38,9 @@ func NewContainer() (*Container, error) {
 	pool := worker.NewPool(5, jobRepo, log)
 
 	return &Container{
-		Cfg:    cfg,
-		Logger: log,
-		Pool:   pool,
+		Cfg:           cfg,
+		Logger:        log,
+		Pool:          pool,
+		JobRepository: jobRepo,
 	}, nil
 }

@@ -23,6 +23,7 @@ type IJobRepository interface {
 	Save(j job.IProcessable) (int, error)
 	UpdateStatus(id int, status string) error
 	LoadPending() (job.IProcessable, error)
+	Load(id int) (job.IProcessable, error)
 }
 
 func (r *JobRepository) Save(j job.IProcessable) (int, error) {
@@ -50,6 +51,23 @@ func (r *JobRepository) UpdateStatus(id int, status string) error {
 		r.logger.Error("Failed to update job %d status to %s: %v", id, status, err)
 	}
 	return err
+}
+
+func (r *JobRepository) Load(id int) (job.IProcessable, error) {
+	var row job.BaseJob
+	err := r.db.db.Model(&job.BaseJob{}).Where("id = ?", id).First(&row).Error
+	if err != nil {
+		r.logger.Error("Failed to load job %d: %v", id, err)
+		return nil, err
+	}
+
+	j, err := factory.DeserializeJob(row)
+	if err != nil {
+		r.logger.Warn("Corrupt job id %d: %v", id, err)
+		return nil, err
+	}
+
+	return j, nil
 }
 
 func (r *JobRepository) LoadPending() (job.IProcessable, error) {

@@ -1,9 +1,11 @@
 package app
 
 import (
+	"concurrent-job-system/cmd/api"
 	"concurrent-job-system/internal/container"
 	"context"
 	"log"
+	"net/http"
 )
 
 type App struct {
@@ -21,8 +23,13 @@ func (a *App) Run(ctx context.Context) error {
 	go a.container.Pool.Start(ctx)
 
 	//Simulate jobs
-	go a.simulateJobs(ctx)
-
+	go func(con *container.Container) {
+		handler := api.NewHandler(con)
+		log.Println("📡 Starting REST API server at :8080")
+		if err := http.ListenAndServe(":8080", api.NewRouter(handler)); err != nil {
+			log.Fatalf("API server failed: %v", err)
+		}
+	}(a.container)
 	// Wait for shutdown signal
 	<-ctx.Done()
 	log.Println("Shutdown signal received")
@@ -32,17 +39,4 @@ func (a *App) Run(ctx context.Context) error {
 	log.Println("Gracefully stopped")
 
 	return nil
-}
-
-func (a *App) simulateJobs(ctx context.Context) {
-	for i := 0; i < 30; i++ {
-		select {
-		case <-ctx.Done():
-			log.Printf("Stopped job submission at job %d", i)
-			return
-		default:
-			var job = a.container.MakeJob(i)
-			a.container.Pool.Submit(job)
-		}
-	}
 }
