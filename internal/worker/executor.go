@@ -68,13 +68,15 @@ func (e *JobExecutor) markJobAs(j job.IProcessable, status string) {
 	switch status {
 	case "success":
 		e.stats.IncSuccess()
-		break
 	case "failed":
 		e.stats.IncFailed()
-		break
 	}
 	e.stats.RecordStatus(j.GetId(), status)
-	e.storage.UpdateStatus(j.GetId(), status)
+	err := e.storage.UpdateStatus(j.GetId(), status)
+	if err != nil {
+		e.logger.Warn("Job %d failed to mark as %s - %s", j.GetId(), status, err)
+		return
+	}
 }
 
 func (e *JobExecutor) LoadPending() job.IProcessable {

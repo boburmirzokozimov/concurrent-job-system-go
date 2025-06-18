@@ -50,7 +50,11 @@ func (p *Pool) Submit(j job.IProcessable) {
 		p.logger.Error("Failed to save job %d: %v", j.GetId(), err)
 		return
 	}
-	j.SetId(id)
+	err = j.SetId(id)
+	if err != nil {
+		p.logger.Error("Failed to set job id %d: %v", j.GetId(), err)
+		return
+	}
 	p.queues.Enqueue(j)
 	p.logger.Debug("Enqueued job %d with priority %v", j.GetId(), j.GetPriority())
 }
