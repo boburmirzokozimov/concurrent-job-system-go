@@ -37,11 +37,12 @@ func (e *JobExecutor) Execute(j job.IProcessable, ctx context.Context) {
 	e.stats.IncTotal()
 	e.logger.Info("Executing job %d", j.GetId())
 
+	var lastErr error
 	for j.GetRetries() < j.GetMaxRetryCount() {
 		j.IncRetry()
 		e.logger.Debug("Job %d retry #%d", j.GetId(), j.GetRetries())
-		err := j.Process()
-		if err == nil {
+		lastErr = j.Process()
+		if lastErr == nil {
 			e.markJobAs(j, "success")
 			metrics.SucceededJobs.Inc()
 			return
@@ -60,7 +61,7 @@ func (e *JobExecutor) Execute(j job.IProcessable, ctx context.Context) {
 	}
 
 	metrics.FailedJobs.Inc()
-	e.markJobAs(j, "failed")
+	e.markJobAsFailed(j, lastErr)
 }
 
 func (e *JobExecutor) markJobAs(j job.IProcessable, status string) {
@@ -73,6 +74,24 @@ func (e *JobExecutor) markJobAs(j job.IProcessable, status string) {
 	}
 	e.stats.RecordStatus(j.GetId(), status)
 	err := e.storage.UpdateStatus(j.GetId(), status)
+	if err != nil {
+		e.logger.Warn("Job %d failed to mark as %s - %s", j.GetId(), status, err)
+		return
+	}
+}
+
+func (e *JobExecutor) markJobAsFailed(j job.IProcessable, lastErr error) {
+	status := "failed"
+	e.logger.Info("Job %d marked as %s with error: %v", j.GetId(), status, lastErr)
+	e.stats.IncFailed()
+	e.stats.RecordStatus(j.GetId(), status)
+
+	errMessage := "unknown error"
+	if lastErr != nil {
+		errMessage = lastErr.Error()
+	}
+
+	err := e.storage.UpdateFailedStatus(j.GetId(), status, errMessage)
 	if err != nil {
 		e.logger.Warn("Job %d failed to mark as %s - %s", j.GetId(), status, err)
 		return

@@ -5,6 +5,7 @@ import (
 	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/logger"
 	"concurrent-job-system/internal/metrics"
+	"concurrent-job-system/pkg/dto"
 	"context"
 	"sync"
 )
@@ -68,6 +69,15 @@ func (p *Pool) Shutdown() {
 	p.logger.Info("Shutting down pool...")
 	p.Wait()
 	p.logger.Info("Pool shutdown complete.")
+}
+
+func (p *Pool) GetStats() dto.WorkerStats {
+	busy := p.dispatcher.BusyWorkers()
+	return dto.WorkerStats{
+		Total: p.numWorkers,
+		Idle:  p.numWorkers - busy,
+		Busy:  busy,
+	}
 }
 
 func (p *Pool) Stats() *JobStats {

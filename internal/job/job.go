@@ -31,6 +31,8 @@ type BaseJob struct {
 	MaxRetryCount int
 	Retries       int
 	Status        string
+	Error         string `gorm:"type:text"`
+	FailedAt      *time.Time
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 }

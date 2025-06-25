@@ -4,6 +4,7 @@ import (
 	"concurrent-job-system/internal/container"
 	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/job/types"
+	"concurrent-job-system/pkg/dto"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -63,6 +64,32 @@ func (h *Handler) GetJobStatus(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		return
+	}
+}
+
+func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	stats, err := h.c.JobRepository.GetStats()
+	if err != nil {
+		http.Error(w, "failed to get stats", http.StatusInternalServerError)
+		return
+	}
+
+	workerStats := h.c.Pool.GetStats()
+
+	resp := dto.StatsResponse{
+		Jobs:    stats,
+		Workers: workerStats,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 }
 

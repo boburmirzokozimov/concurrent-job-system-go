@@ -5,14 +5,16 @@ import (
 	"concurrent-job-system/internal/logger"
 	"concurrent-job-system/internal/metrics"
 	"context"
+	"sync"
 	"time"
 )
 
 type Dispatcher struct {
-	queues   *JobQueueSet
-	executor *JobExecutor
-	stats    *JobStats
-	logger   logger.ILogger
+	queues      *JobQueueSet
+	executor    *JobExecutor
+	stats       *JobStats
+	logger      logger.ILogger
+	busyWorkers sync.Map
 }
 
 func NewDispatcher(queues *JobQueueSet, executor *JobExecutor, log logger.ILogger) *Dispatcher {
@@ -35,16 +37,27 @@ func (d *Dispatcher) Run(ctx context.Context, workerID int) {
 			if dequeue == nil {
 				dequeue = d.executor.LoadPending()
 				if dequeue == nil {
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(10 * time.Second)
 					continue
 				}
 			}
+			d.busyWorkers.Store(workerID, true)
 			d.logger.Debug("Worker %d picked job %d", workerID, dequeue.GetId())
 			metrics.QueuedGauge.Dec()
 			d.executor.Execute(dequeue, ctx)
+			d.busyWorkers.Delete(workerID)
 		}
 	}
 }
 func (d *Dispatcher) Save(j job.IProcessable) (int, error) {
 	return d.executor.Save(j)
+}
+
+func (d *Dispatcher) BusyWorkers() int {
+	count := 0
+	d.busyWorkers.Range(func(_, _ interface{}) bool {
+		count++
+		return true
+	})
+	return count
 }
