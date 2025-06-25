@@ -3,7 +3,7 @@ package api
 import (
 	"concurrent-job-system/internal/container"
 	"concurrent-job-system/internal/job"
-	"concurrent-job-system/internal/job/types"
+	"concurrent-job-system/internal/job/factory"
 	"concurrent-job-system/pkg/dto"
 	"encoding/json"
 	"net/http"
@@ -31,7 +31,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-	j := h.MakeJobFromPayload(req.Type)
+	j := h.MakeJobFromPayload(req)
 	if j == nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
@@ -93,13 +93,22 @@ func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) MakeJobFromPayload(t string) job.IProcessable {
-	switch t {
-	case "Simple":
-		return types.NewSimpleJob()
-	case "Excel":
-		return types.NewExcelJob("new_path")
-	default:
+func (h *Handler) MakeJobFromPayload(r SubmitJobRequest) job.IProcessable {
+	payloadJson, err := json.Marshal(r.Payload)
+	if err != nil {
+		h.c.Logger.Error("Invalid payload: %v", err)
 		return nil
 	}
+
+	row := job.BaseJob{
+		JobType: r.Type,
+		Payload: string(payloadJson),
+	}
+
+	j, err := factory.DeserializeJob(row)
+	if err != nil {
+		h.c.Logger.Warn("Failed to deserialize job: %v", err)
+		return nil
+	}
+	return j
 }

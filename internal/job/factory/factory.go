@@ -7,9 +7,15 @@ import (
 	"fmt"
 )
 
-var payloadRegistry = map[string]func() job.Payload{
-	"Simple": func() job.Payload { return &types.SimplePayloadJob{} },
-	"Excel":  func() job.Payload { return &types.ExcelJobPayload{} },
+var payloadRegistry = map[string]func() job.Payload{}
+
+func RegisterJobs() {
+	RegisterPayloadType("Simple", func() job.Payload { return &types.SimplePayloadJob{} })
+	RegisterPayloadType("Excel", func() job.Payload { return &types.ExcelJobPayload{} })
+}
+
+func RegisterPayloadType(name string, creator func() job.Payload) {
+	payloadRegistry[name] = creator
 }
 
 func DeserializeJob(row job.BaseJob) (job.IProcessable, error) {
