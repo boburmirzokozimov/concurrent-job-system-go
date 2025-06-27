@@ -1,8 +1,8 @@
-package job
+package worker
 
 import (
+	"concurrent-job-system/internal/job"
 	"concurrent-job-system/internal/job/priority"
-	"concurrent-job-system/internal/worker"
 	"encoding/json"
 	"reflect"
 	"time"
@@ -14,7 +14,7 @@ type HandlerWithPayload interface {
 }
 
 type WrapperJob struct {
-	BaseJob
+	job.BaseJob
 	handler HandlerWithPayload
 }
 
@@ -50,9 +50,9 @@ func (j *WrapperJob) GetPriority() priority.Priority {
 func (j *WrapperJob) GetRetries() int       { return j.Retries }
 func (j *WrapperJob) GetMaxRetryCount() int { return j.MaxRetryCount }
 func (j *WrapperJob) IncRetry()             { j.Retries++ }
-func (j *WrapperJob) Base() *BaseJob        { return &j.BaseJob }
+func (j *WrapperJob) Base() *job.BaseJob    { return &j.BaseJob }
 
-var pool *worker.Pool
+var pool *Pool
 
 func Dispatch(handler HandlerWithPayload, payload any) error {
 	data, err := json.Marshal(payload)
@@ -62,7 +62,7 @@ func Dispatch(handler HandlerWithPayload, payload any) error {
 
 	handler.SetPayload(payload)
 
-	base := BaseJob{
+	base := job.BaseJob{
 		JobType:       reflect.TypeOf(handler).Elem().Name(),
 		Payload:       string(data),
 		Priority:      1,
